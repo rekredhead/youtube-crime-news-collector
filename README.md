@@ -1,0 +1,5 @@
+- Add setup instructions
+- Add description of tool, purpose, what it solves, what it uses to solve, the algorithm used
+- Further improvements
+- Do the Crime news checking manually and compare my results with the automated results
+- Set a limit to the tool - Since it makes 31 requests at once - it can only run 3 times a day
