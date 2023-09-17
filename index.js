@@ -12,9 +12,14 @@ const encodedType = 'utf-8';
 google.options({ auth: process.env.API_KEY });
 fs.writeFileSync(filename, '', encodedType);
 
-const getDate2WeeksAgo = () => {
+const channelSearchTerms = wordsRelatedToCrime.join('|');
+const getDate10DaysAgo = () => {
    const curDate = new Date();
-   curDate.setDate(curDate.getDate() - 14);
+   curDate.setDate(curDate.getDate() - 10);
+   return curDate.toISOString();
+}
+const getCurrentDate = () => {
+   const curDate = new Date();
    return curDate.toISOString();
 }
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -42,16 +47,19 @@ const parameters = youtubeSearches.map((search) => {
       {
          part: 'snippet',
          q: search.searchTerms.join('|'), // To search for multiple terms under a single request
-         publishedAfter: getDate2WeeksAgo(),
+         publishedAfter: getDate10DaysAgo(),
+         publishedBefore: getCurrentDate(),
          order: 'date',
-         type: 'video'
+         maxResults: 50
       } :
       {
          part: 'snippet',
          channelId: search.channelId,
-         publishedAfter: getDate2WeeksAgo(),
+         q: channelSearchTerms,
+         publishedAfter: getDate10DaysAgo(),
+         publishedBefore: getCurrentDate(),
          order: 'date',
-         type: 'video'
+         maxResults: 50
       }
 });
 
@@ -60,6 +68,8 @@ const parameters = youtubeSearches.map((search) => {
 
    // Make an api request for each parameter
    for (const [index, parameter] of parameters.entries()) {
+      // Note: The API only responds with 50 results, use the pageToken key to get more results (max of 3 pages)
+      // Set a limit of 
       youtube.search.list(parameter, (err, res) => {
          if (err) {
             console.log('Error fetching videos:', err);

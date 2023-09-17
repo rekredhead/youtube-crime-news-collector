@@ -103,8 +103,8 @@ const youtubeSearches = [
    },
    {
       objective: "oakland",
-      searchTerms: [],
-      channelId: 'UCYUbNjkuE4lsr2v1Id2O1oA'
+      searchTerms: ['oakland crime news'],
+      channelId: ''
    },
    {
       objective: "los angeles",

@@ -7,9 +7,10 @@
 # Improvements
 - The tool can filter articles more accurately by adding more unique crime related terms in the `wordsRelatedToCrime.js` array
 - More areas can be added to the `youtubeSearches.js` array (please use the same object data as the previous elements in the list)
+- Output the data into a Google Document to make it easier to move to other google docs
 
 # Warning
-- There can only be 100 API requests per day. Currently, the tool makes 31 requests so the tool can only be used 3 times a day at maximum
+- There can only be 100 API requests per day. Currently, the tool makes 31 requests so the tool can only be used 2 times a day at maximum
 
 # Setup
 - Clone this repository

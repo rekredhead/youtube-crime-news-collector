@@ -9,7 +9,7 @@ const wordsRelatedToCrime = [
    "drug", "fire", "rage", "sentence", "steal", "violence", "wound", "kidnap", "invasion",
    "fight", "arson", "burglar", "machete", "rape", "violent", "invade", "damage",
    "beat", "rampage", "break", "suicide", "homeless", "crash", "car",
-   "housing", "costofliving", "injury", "hijack"
+   "housing", "costofliving", "injury", "hijack", 'terror'
 ];
 
 module.exports = wordsRelatedToCrime;
