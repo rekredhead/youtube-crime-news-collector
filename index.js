@@ -2,6 +2,7 @@
 
 const { google } = require('googleapis');
 const youtubeSearches = require('./youtubeSearches');
+const wordsRelatedToCrime = require('./wordsRelatedToCrime');
 const youtube = google.youtube('v3');
 const fs = require('fs');
 require('dotenv').config();
@@ -11,16 +12,6 @@ const encodedType = 'utf-8';
 google.options({ auth: process.env.API_KEY });
 fs.writeFileSync(filename, '', encodedType);
 
-const wordsRelatedToCrime = [
-   "shot", "shoot", "kill", "crime", "suspect", "dead", "stab", "death", "murder",
-   "attack", "teen", "injure", "rob", "stole", "thief", "charge", "melee", "erupt",
-   "fatal", "spree", "thieves", "gun", "knife", "caught", "arrest", "theft", "battle",
-   "incident", "carjack", "assault", "die", "homicide", "hit", "jailed", "youth", "hate",
-   "drug", "fire", "rage", "sentence", "steal", "violence", "wound", "kidnap", "invasion",
-   "fight", "arson", "burglar", "machete", "rape", "violent", "invade", "damage",
-   "beat", "rampage", "break", "suicide", "homeless", "crash", "car",
-   "housing", "costofliving", "injury", "hijack"
-];
 const getDate2WeeksAgo = () => {
    const curDate = new Date();
    curDate.setDate(curDate.getDate() - 14);
@@ -50,7 +41,7 @@ const parameters = youtubeSearches.map((search) => {
    return hasSearchTerms ?
       {
          part: 'snippet',
-         q: search.searchTerms.join('|'),
+         q: search.searchTerms.join('|'), // To search for multiple terms under a single request
          publishedAfter: getDate2WeeksAgo(),
          order: 'date',
          type: 'video'
@@ -67,6 +58,7 @@ const parameters = youtubeSearches.map((search) => {
 (async () => {
    const allData = [];
 
+   // Make an api request for each parameter
    for (const [index, parameter] of parameters.entries()) {
       youtube.search.list(parameter, (err, res) => {
          if (err) {
@@ -81,8 +73,8 @@ const parameters = youtubeSearches.map((search) => {
          allData.push({ objective, videos: filteredVideos });
       });
 
-      //console.log(`(${index}/${parameters.length}) complete`)
-      await delay(5000);
+      console.log(`(${index}/${parameters.length}) complete`); // Show the progress
+      await delay(5000); // Wait 5 sec before making the next request to reduce the frequency of requests made
    }
 
    // Write the data into a file
