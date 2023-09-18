@@ -1,5 +1,3 @@
-// Search Japan, SK, NZ articles and videos manually
-
 const { google } = require('googleapis');
 const youtubeSearches = require('./youtubeSearches');
 const wordsRelatedToCrime = require('./wordsRelatedToCrime');
@@ -12,31 +10,27 @@ const encodedType = 'utf-8';
 google.options({ auth: process.env.API_KEY });
 fs.writeFileSync(filename, '', encodedType);
 
-const channelSearchTerms = wordsRelatedToCrime.join('|');
-const getDate10DaysAgo = () => {
-   const curDate = new Date();
-   curDate.setDate(curDate.getDate() - 10);
-   return curDate.toISOString();
-}
-const getCurrentDate = () => {
-   const curDate = new Date();
-   return curDate.toISOString();
+const getDateFromXDaysAgo = (daysAgo) => {
+   const currentDate = new Date();
+   currentDate.setDate(currentDate.getDate() - daysAgo);
+   return currentDate.toISOString();
 }
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const isTitleRelatedToCrime = (title) => {
-   return wordsRelatedToCrime.some((word) => {
-      const regex = new RegExp(`\\b${word}\\b|${word}`, 'i');
-      return regex.test(title);
-   });
-}
+const date10DaysAgo = getDateFromXDaysAgo(10);
+const currentDate = getDateFromXDaysAgo(0);
+const channelSearchTerms = wordsRelatedToCrime.join('|');
+
 const filterVideosByTitle = (videos) => {
    return videos.filter((video) => {
       const title = video.snippet.title.toLowerCase()
          .replace(/\s/g, '') // Remove spaces
          .replace(/[^\w\s]|_/g, '') // Remove symbols
          .replace(/\s+/g, ' '); // Replace multiple spaces with a single space
-      
-      return isTitleRelatedToCrime(title);
+
+      return wordsRelatedToCrime.some((word) => {
+         const regex = new RegExp(`\\b${word}\\b|${word}`, 'i');
+         return regex.test(title);
+      });
    });
 }
 
@@ -44,20 +38,22 @@ const parameters = youtubeSearches.map((search) => {
    const hasSearchTerms = search.searchTerms.length !== 0 && !search.channelId;
 
    return hasSearchTerms ?
+      // Search the globally
       {
          part: 'snippet',
          q: search.searchTerms.join('|'), // To search for multiple terms under a single request
-         publishedAfter: getDate10DaysAgo(),
-         publishedBefore: getCurrentDate(),
+         publishedAfter: date10DaysAgo,
+         publishedBefore: currentDate,
          order: 'date',
          maxResults: 50
       } :
+      // Search the specific channel
       {
          part: 'snippet',
          channelId: search.channelId,
-         q: channelSearchTerms,
-         publishedAfter: getDate10DaysAgo(),
-         publishedBefore: getCurrentDate(),
+         q: channelSearchTerms, // To reduce the response size
+         publishedAfter: date10DaysAgo,
+         publishedBefore: currentDate,
          order: 'date',
          maxResults: 50
       }
@@ -65,26 +61,57 @@ const parameters = youtubeSearches.map((search) => {
 
 (async () => {
    const allData = [];
+   const paginationSearchLimit = 3;
 
    // Make an api request for each parameter
    for (const [index, parameter] of parameters.entries()) {
-      // Note: The API only responds with 50 results, use the pageToken key to get more results (max of 3 pages)
-      // Set a limit of 
-      youtube.search.list(parameter, (err, res) => {
-         if (err) {
-            console.log('Error fetching videos:', err);
-            return;
-         }
 
-         const objective = youtubeSearches[index].objective;
-         const rawVideos = res.data.items;
-         const filteredVideos = filterVideosByTitle(rawVideos);
+      const isAChannelSearch = (parameter.channelId) !== undefined;
+      if (isAChannelSearch) {
+         // Search the channel specified in the parameter - use `nextPageToken` since pagination is used in the API response
+         let nextPageToken = null;
+         let pagesSearched = 0;
 
-         allData.push({ objective, videos: filteredVideos });
-      });
+         do {
+            if (pagesSearched > paginationSearchLimit) break;
+
+            youtube.search.list({ ...parameter, pageToken: nextPageToken }, (err, res) => {
+               if (err) {
+                  console.log('Error fetching videos:', err);
+                  return;
+               }
+
+               const objective = youtubeSearches[index].objective;
+               const rawVideos = res.data.items;
+               const filteredVideos = filterVideosByTitle(rawVideos);
+
+               allData.push({ objective, videos: filteredVideos });
+               nextPageToken = res.data.nextPageToken; // Get the token for the next page
+            });
+
+            pagesSearched++;
+            await delay(2000); // Wait for 2 seconds before making the next request to reduce the frequency of requests made
+
+         } while (nextPageToken);
+
+      } else {
+         // Search globally - nextPageToken is not used here since the pagination is not used in the API response
+         youtube.search.list(parameter, (err, res) => {
+            if (err) {
+               console.log('Error fetching videos:', err);
+               return;
+            }
+
+            const objective = youtubeSearches[index].objective;
+            const rawVideos = res.data.items;
+            const filteredVideos = filterVideosByTitle(rawVideos);
+
+            allData.push({ objective, videos: filteredVideos });
+         });
+      }
 
       console.log(`(${index}/${parameters.length}) complete`); // Show the progress
-      await delay(5000); // Wait 5 sec before making the next request to reduce the frequency of requests made
+      await delay(2000); // Wait 2 sec before making the next request to reduce the frequency of requests made
    }
 
    // Write the data into a file

@@ -11,6 +11,7 @@
 
 # Warning
 - There can only be 100 API requests per day. Currently, the tool makes 31 requests so the tool can only be used 2 times a day at maximum
+- The tool also gets data for upto 3 pages (since the API uses pagination) per search parameter (only for channel searches)
 
 # Setup
 - Clone this repository
