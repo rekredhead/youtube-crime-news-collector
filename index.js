@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const readline = require('readline-sync');
 const youtubeSearches = require('./youtubeSearches');
 const wordsRelatedToCrime = require('./wordsRelatedToCrime');
 const youtube = google.youtube('v3');
@@ -10,13 +11,14 @@ const encodedType = 'utf-8';
 google.options({ auth: process.env.API_KEY });
 fs.writeFileSync(filename, '', encodedType);
 
+const xDaysAgo = readline.question("Videos from how many days ago? ");
 const getDateFromXDaysAgo = (daysAgo) => {
    const currentDate = new Date();
    currentDate.setDate(currentDate.getDate() - daysAgo);
    return currentDate.toISOString();
 }
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const date10DaysAgo = getDateFromXDaysAgo(10);
+const dateXDaysAgo = getDateFromXDaysAgo(xDaysAgo);
 const currentDate = getDateFromXDaysAgo(0);
 const channelSearchTerms = wordsRelatedToCrime.join('|');
 
@@ -42,7 +44,7 @@ const parameters = youtubeSearches.map((search) => {
       {
          part: 'snippet',
          q: search.searchTerms.join('|'), // To search for multiple terms under a single request
-         publishedAfter: date10DaysAgo,
+         publishedAfter: dateXDaysAgo,
          publishedBefore: currentDate,
          order: 'date',
          maxResults: 50
@@ -52,7 +54,7 @@ const parameters = youtubeSearches.map((search) => {
          part: 'snippet',
          channelId: search.channelId,
          q: channelSearchTerms, // To reduce the response size
-         publishedAfter: date10DaysAgo,
+         publishedAfter: dateXDaysAgo,
          publishedBefore: currentDate,
          order: 'date',
          maxResults: 50
